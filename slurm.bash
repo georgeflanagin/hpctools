@@ -119,10 +119,12 @@ EOF
         fi
 
         echo "Checking for slurm user"
-        cat /etc/passwd | grep slurm 
-        if [ ! $? ]; then
+        found=`cat /etc/passwd | grep slurm` 
+        if [ -z "$found" ]; then
             echo "slurm user not present"
             return
+        else
+            echo "$found"
         fi
 
         echo "Checking slurm.conf file."
