@@ -84,12 +84,6 @@ mungeinstall()
         return
     fi
 
-    sudo /usr/sbin/create-munge-key 2>&1 >> $f  
-    if [ ! $? ]; then 
-        echo "There was a problem creating the munge.key file."
-        return
-    fi
-
     echo "setting permissions for munge"
     sudo chmod 700 /etc/munge 2>&1 >> $f
     sudo chmod 700 /var/lib/munge 2>&1 >> $f
@@ -97,4 +91,13 @@ mungeinstall()
     sudo chmod 755 /run/munge 2>&1 >> $f
     
     echo "The results may be seen in $f"
+}
+
+mungekey()
+{
+    sudo /usr/sbin/create-munge-key  
+    if [ ! $? ]; then 
+        echo "There was a problem creating the munge.key file."
+        return
+    fi
 }
