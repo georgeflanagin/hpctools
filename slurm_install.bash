@@ -42,8 +42,8 @@ export __email__="gflanagin@richmond.edu"
 
 function confirm
 {
-    if [ ! $interactive ]; then
-        return true
+    if [ $interactive -eq 0 ]; then
+        true
     fi
         
     read -r -p "Continue with $1 ? [y/N] " chars
@@ -57,6 +57,12 @@ function confirm
     esac
 }
 
+function v_echo
+{
+    if (( $verbose == 1 )); then
+        echo $@
+    fi
+}
 
 # >>>>>>>>>>
 # Make sure this is bash, and stop if we are not.
@@ -96,9 +102,24 @@ export HOST_IP=$(for x in $ip; do echo $x; break; done)
 # >>>>>>>>>>>
 # set the variables for compute and head nodes.
 # >>>>>>>>>>>
-export verbose=[ "$@" == *"-v"* ]
-export interactive=[ "$@" == *"-i"* ]
-export run_checks=[ "$@" == *"-c"* ]
+if [ "$@" == *"-v"* ]; then
+    export verbose=1
+else
+    export verbose=0
+fi
+
+if [ "$@" == *"-i"* ]; then
+    export interactive=1
+else
+    export interactive=0
+fi
+
+if [ "$@" == *"-c"* ]; then
+    export run_checks=1
+else
+    export run_checks=0
+fi
+
 export node_type=$(for x in $@; do; done)
 
 # >>>>>>>>>>>>
@@ -134,7 +155,7 @@ EOF
     
 esac
 
-$verbose && echo "interactive is $interactive, run_checks is $run_checks, node_type is $node_type"
+v_echo "interactive is $interactive, run_checks is $run_checks, node_type is $node_type"
 
 # >>>>>>>>>>
 # Identify the right installer. We are going to call it
@@ -144,16 +165,16 @@ dnf=$(which dnf 2>/dev/null)
 if [ -z $dnf ]; then
     dnf=$(which yum)
 fi
-$verbose && echo "dnf is $dnf"
+v_echo "dnf is $dnf"
 
 # >>>>>>>>>>
 # Identify the correct rpm package tool.
 # >>>>>>>>>>
 export rpmbuilder=$(which rpm-build 2>/dev/null)
-if [ ! $? ];
+if [ ! $? ]; then
     export rpmbuilder=$(which rpmbuild 2>/dev/null)
 fi
-$verbose && echo "rpmbuilder is $rpmbuilder"
+v_echo "rpmbuilder is $rpmbuilder"
 
 # >>>>>>>>>>>
 # Avoid typos by setting this env variable to ensure
@@ -165,17 +186,17 @@ alias installit="sudo $dnf -y upgrade"
 # >>>>>>>>>>
 # Install the up to scratch database.
 # >>>>>>>>>>
-if ! confirm "Installing database"; return; fi
-$verbose && echo "installing database"
+if ! confirm "Installing database"; then return; fi
+v_echo "installing database"
 installit mariadb-server mariadb-devel
-$verbose && echo "database installed"
+v_echo "database installed"
 
 # For all the nodes, before you install Slurm or Munge:
 # >>>>>>>>>>
 # Setup some defaults, and check for previously existing values
 # for the slurm and munge users.
 # >>>>>>>>>>
-if ! confirm "creating slurm and munge users"; return; fi
+if ! confirm "creating slurm and munge users"; then return; fi
 echo "Checking for munge user"
 export MUNGEUSER=996
 result=$(id -u munge 2>/dev/null)
@@ -201,7 +222,7 @@ echo "slurm user is $SLURMUSER"
 # >>>>>>>>>>>>>>
 # install munge
 # >>>>>>>>>>>>>>
-if ! confirm "installing munge"; return; fi
+if ! confirm "installing munge"; then return; fi
 installit munge munge-libs munge-devel
 installit rng-tools
 sudo rngd -r /dev/urandom
@@ -227,7 +248,7 @@ sudo systemctl start munge
 
 
 # build and install SLURM 
-if ! confirm "installing slurm"; return; fi
+if ! confirm "installing slurm"; then return; fi
 installit python3 gcc openssl openssl-devel pam-devel \
     numactl numactl-devel hwloc lua readline-devel \
     ncurses-devel man2html libibmad libibumad rpm-build \
@@ -270,7 +291,7 @@ installit --nogpgcheck localinstall \
 slurm_cfg=$(slurmd -C | head -1)
 export slurm_cfg="$slurm_cfg NodeAddr=$HOST_IP"
 
-if ! confirm "create the slurm.conf file[s]"; return; fi
+if ! confirm "create the slurm.conf file[s]"; then return; fi
 # >>>>>>>>>>>
 # create the SLURM default configuration with
 # compute nodes called "NodeName=$HOST"
