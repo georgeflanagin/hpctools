@@ -40,6 +40,24 @@ export __email__="gflanagin@richmond.edu"
 # SLURM accounting support
 ##################################################################################
 
+function confirm
+{
+    if [ ! $interactive ]; then
+        return true
+    fi
+        
+    read -r -p "Continue with $1 ? [y/N] " chars
+    case $chars in
+        [yY][eE][sS]|[yY])
+        true
+        ;;
+    *)
+        false
+        ;;
+    esac
+}
+
+
 # >>>>>>>>>>
 # Make sure this is bash, and stop if we are not.
 # >>>>>>>>>>
@@ -78,20 +96,16 @@ export HOST_IP=$(for x in $ip; do echo $x; break; done)
 # >>>>>>>>>>>
 # set the variables for compute and head nodes.
 # >>>>>>>>>>>
-case "$1" in 
-    "-?"|"?"|"help")
-    cat - <<EOF
-Usage:
-    This script will do its best to install and upgrade the 
-    slurm/munge environment on this node of the cluster. The
-    default is to configure for a compute node because there
-    usually many of them. To install for the head node, add
-    the word "head" to the command line.
-EOF
-    return
-    ;;
+export verbose=[ "$@" == *"-v"* ]
+export interactive=[ "$@" == *"-i"* ]
+export run_checks=[ "$@" == *"-c"* ]
+export node_type=$(for x in $@; do; done)
 
-    ""|"compute")
+# >>>>>>>>>>>>
+# Find out what we are doing.
+# >>>>>>>>>>>>
+case "$node_type" in 
+    "compute")
     export compute_node=1
     export head_node=0
     ;;
@@ -101,12 +115,26 @@ EOF
     export head_node=1
     ;;
 
-    *)
-    echo "Syntax: $0 {help | compute | head}"
+    ""|"help"|*)
+    cat - <<EOF
+Usage:
+    $0 [-i] [-c] [-v] {head | compute}
+
+    This script will do its best to install and upgrade the 
+    slurm/munge environment on this node of the cluster.
+
+    -i => interactive. The script will ask you whether you
+        want to continue after each step.
+    -c => perform sanity checks at the end.
+    -v => verbose. Engage in haemorrhagic logorrhoea.
+
+EOF
     return
     ;;
     
 esac
+
+$verbose && echo "interactive is $interactive, run_checks is $run_checks, node_type is $node_type"
 
 # >>>>>>>>>>
 # Identify the right installer. We are going to call it
@@ -116,6 +144,7 @@ dnf=$(which dnf 2>/dev/null)
 if [ -z $dnf ]; then
     dnf=$(which yum)
 fi
+$verbose && echo "dnf is $dnf"
 
 # >>>>>>>>>>
 # Identify the correct rpm package tool.
@@ -124,6 +153,7 @@ export rpmbuilder=$(which rpm-build 2>/dev/null)
 if [ ! $? ];
     export rpmbuilder=$(which rpmbuild 2>/dev/null)
 fi
+$verbose && echo "rpmbuilder is $rpmbuilder"
 
 # >>>>>>>>>>>
 # Avoid typos by setting this env variable to ensure
@@ -135,13 +165,17 @@ alias installit="sudo $dnf -y upgrade"
 # >>>>>>>>>>
 # Install the up to scratch database.
 # >>>>>>>>>>
+if ! confirm "Installing database"; return; fi
+$verbose && echo "installing database"
 installit mariadb-server mariadb-devel
+$verbose && echo "database installed"
 
 # For all the nodes, before you install Slurm or Munge:
 # >>>>>>>>>>
 # Setup some defaults, and check for previously existing values
 # for the slurm and munge users.
 # >>>>>>>>>>
+if ! confirm "creating slurm and munge users"; return; fi
 echo "Checking for munge user"
 export MUNGEUSER=996
 result=$(id -u munge 2>/dev/null)
@@ -167,6 +201,7 @@ echo "slurm user is $SLURMUSER"
 # >>>>>>>>>>>>>>
 # install munge
 # >>>>>>>>>>>>>>
+if ! confirm "installing munge"; return; fi
 installit munge munge-libs munge-devel
 installit rng-tools
 sudo rngd -r /dev/urandom
@@ -192,6 +227,7 @@ sudo systemctl start munge
 
 
 # build and install SLURM 
+if ! confirm "installing slurm"; return; fi
 installit python3 gcc openssl openssl-devel pam-devel \
     numactl numactl-devel hwloc lua readline-devel \
     ncurses-devel man2html libibmad libibumad rpm-build \
@@ -203,7 +239,7 @@ mkdir -p slurm-tmp
 cd slurm-tmp
 wget https://download.schedmd.com/slurm/slurm-$VER.tar.bz2
 
-$rpmbuild -ta slurm-$VER.tar.bz2    # and wait a few minutes until SLURM has been compiled
+$rpmbuilder -ta slurm-$VER.tar.bz2    # and wait a few minutes until SLURM has been compiled
 
 cd ..
 rmdir -fr slurm-tmp 
@@ -234,6 +270,7 @@ installit --nogpgcheck localinstall \
 slurm_cfg=$(slurmd -C | head -1)
 export slurm_cfg="$slurm_cfg NodeAddr=$HOST_IP"
 
+if ! confirm "create the slurm.conf file[s]"; return; fi
 # >>>>>>>>>>>
 # create the SLURM default configuration with
 # compute nodes called "NodeName=$HOST"
@@ -303,6 +340,7 @@ PartitionName=test Nodes=$HOST Default=YES MaxTime=INFINITE State=UP
 EOF
 
 sudo cat > /etc/slurm/cgroup.conf << EOF
+# This file was generated on `date` by $0
 ###
 #
 # Slurm cgroup support configuration file
@@ -336,7 +374,7 @@ sudo chown slurm: /var/log/slurm_jobacct.log /var/log/slurm_jobcomp.log
 
 # firewall will block connections between nodes so in case of cluster
 # with multiple nodes adapt the firewall on the compute nodes 
-if [ $compute_node -eq 1 ]; then 
+if [ $node_type == "compute" ]; then 
     sudo systemctl stop firewalld
     sudo systemctl disable firewalld
 fi
@@ -344,7 +382,7 @@ fi
 # >>>>>>>>>>>>
 # On the head node, we need to accept the incoming connections.
 # >>>>>>>>>>>>
-if [ $head_node -eq 1 ]; then
+if [ $node_type == "head" ]; then
     sudo firewall-cmd --permanent --zone=public --add-port=6817/udp
     sudo firewall-cmd --permanent --zone=public --add-port=6817/tcp
     sudo firewall-cmd --permanent --zone=public --add-port=6818/tcp
@@ -365,12 +403,12 @@ sudo chkconfig ntpd on
 sudo ntpdate pool.ntp.org
 sudo systemctl start ntpd
 
-if [ $head_node -eq 1 ]; then
+if [ $node_type == "head" ]; then
     sudo systemctl enable slurmctld
     sudo systemctl enable slurmdbd
 if
 
-if [ $compute_node -eq 1 ]; then 
+if [ $node_type == "compute" ]; then 
     sudo systemctl enable slurmd.service
     sudo systemctl start slurmd.service
 fi
@@ -378,7 +416,7 @@ fi
 echo Sleep for a few seconds for slurmd to come up ...
 sleep 3
 
-if [ $head_node -eq 1 ]; then
+if [ $node_type == "head" ]; then
     chmod 777 /var/spool   # hack for now as otherwise slurmctld is complaining
     sudo systemctl start slurmctld.service
     echo Sleep for a few seconds for slurmctld to come up ...
@@ -386,7 +424,7 @@ if [ $head_node -eq 1 ]; then
 fi
 
 
-# checking 
+if [ $run_checks ]; then
 # sudo systemctl status slurmd.service
 # sudo journalctl -xe
 
