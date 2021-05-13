@@ -145,30 +145,31 @@ EOF
         f="/tmp/slurm.tombstone"
         rm -f "$f"
         touch "$f"
+        ./slurm_install.bash 2>&1 | tee "$f"
 
-        r=`which sbatch`
-        if [ ! -z $r ]; then
-            echo 'Slurm is already installed.'
-            return
-        fi
-
-        sudo dnf install slurm slurm-devel 2>&1 >> "$f"
-        if [ ! $? ]; then
-            echo "Unable to install slurm"
-        fi
-
-        sudo dnf install mariadb-server mariadb-devel 2>&1 >> "$f"
-        if [ ! $? ]; then
-            echo "Unable to install mariadb."
-        fi 
-
-        if [ -z "$2" ]; then
-            sudo touch /var/log/slurmd.log
-            sudo chown slurm:slurm /var/log/slurmd.log
-        else
-            sudo touch /var/log/slurmctld.log
-            sudo chown slurm:slurm /var/log/slurmctld.log
-        fi
+#        r=`which sbatch`
+#        if [ ! -z $r ]; then
+#            echo 'Slurm is already installed.'
+#            return
+#        fi
+#
+#        sudo dnf install slurm slurm-devel 2>&1 >> "$f"
+#        if [ ! $? ]; then
+#            echo "Unable to install slurm"
+#        fi
+#
+#        sudo dnf install mariadb-server mariadb-devel 2>&1 >> "$f"
+#        if [ ! $? ]; then
+#            echo "Unable to install mariadb."
+#        fi 
+#
+#        if [ -z "$2" ]; then
+#            sudo touch /var/log/slurmd.log
+#            sudo chown slurm:slurm /var/log/slurmd.log
+#        else
+#            sudo touch /var/log/slurmctld.log
+#            sudo chown slurm:slurm /var/log/slurmctld.log
+#        fi
         ;;
 
         #######################

@@ -60,36 +60,45 @@ function confirm
 function v_echo
 {
     if (( $verbose == 1 )); then
+        echo "***********************************************"
         echo $@
+        echo "***********************************************"
     fi
 }
 
 # >>>>>>>>>>
 # Make sure this is bash, and stop if we are not.
 # >>>>>>>>>>
-this_shell=basename $(readlink /proc/$$/exe)
-if [ $this_shell != "bash" ]; then
+this_shell=$(basename $(readlink /proc/$$/exe))
+if [ ! "$this_shell" == "bash" ]; then
     echo "This script should be run after you are in the bash shell."
     echo "Try again after typing 'bash'."
-    return
+    exit
 fi
 
 # >>>>>>>>>>
 # Make sure this user can sudo
 # >>>>>>>>>>
 g=$(groups)
-if [ "$g" == *"wheel"* || "$g" == *"sudo"* ]; then
-    echo "Good thing you can sudo."
-else
+a_sudoer=0
+for g in $(groups); do
+    if [ $g == "wheel" ]; then
+        echo "Good thing you can sudo."
+        a_sudoer=1
+        break;
+    fi
+done
+
+if (( $a_sudoer == 0 )); then
     echo "Only sudoers can run this script."
-    return
+    exit
 fi
 
 # >>>>>>>>>>
 # NOTE: update the default version if required.
 # >>>>>>>>>>
 if [ "$VER" == "" ]; then
-    export VER=20.11.3
+    export VER="20.11.7"
 fi
 
 # >>>>>>>>>>
@@ -102,25 +111,31 @@ export HOST_IP=$(for x in $ip; do echo $x; break; done)
 # >>>>>>>>>>>
 # set the variables for compute and head nodes.
 # >>>>>>>>>>>
-if [ "$@" == *"-v"* ]; then
+if [[ "$@" =~ "-v" ]]; then
     export verbose=1
 else
     export verbose=0
 fi
 
-if [ "$@" == *"-i"* ]; then
+if [[ "$@" =~ "-i" ]]; then
     export interactive=1
 else
     export interactive=0
 fi
 
-if [ "$@" == *"-c"* ]; then
+if [[ "$@" =~ "-c" ]]; then
     export run_checks=1
 else
     export run_checks=0
 fi
 
-export node_type=$(for x in $@; do; done)
+echo "interactive is $interactive" 
+echo "run_checks is $run_checks" 
+echo "verbose is $verbose"
+
+for node_type in $@; do :
+    done
+echo "node_type is $node_type"
 
 # >>>>>>>>>>>>
 # Find out what we are doing.
@@ -150,12 +165,11 @@ Usage:
     -v => verbose. Engage in haemorrhagic logorrhoea.
 
 EOF
-    return
+    exit
     ;;
     
 esac
 
-v_echo "interactive is $interactive, run_checks is $run_checks, node_type is $node_type"
 
 # >>>>>>>>>>
 # Identify the right installer. We are going to call it
@@ -171,7 +185,7 @@ v_echo "dnf is $dnf"
 # Identify the correct rpm package tool.
 # >>>>>>>>>>
 export rpmbuilder=$(which rpm-build 2>/dev/null)
-if [ ! $? ]; then
+if [ -z $rpmbuilder ]; then
     export rpmbuilder=$(which rpmbuild 2>/dev/null)
 fi
 v_echo "rpmbuilder is $rpmbuilder"
@@ -181,14 +195,14 @@ v_echo "rpmbuilder is $rpmbuilder"
 # we are installing everything the same way. Might as
 # well get the latest and greatest.
 # >>>>>>>>>>>
-alias installit="sudo $dnf -y upgrade" 
+export installit="sudo $dnf -y upgrade" 
 
 # >>>>>>>>>>
 # Install the up to scratch database.
 # >>>>>>>>>>
-if ! confirm "Installing database"; then return; fi
+if ! confirm "Installing database"; then exit; fi
 v_echo "installing database"
-installit mariadb-server mariadb-devel
+$installit mariadb-server mariadb-devel
 v_echo "database installed"
 
 # For all the nodes, before you install Slurm or Munge:
@@ -196,7 +210,7 @@ v_echo "database installed"
 # Setup some defaults, and check for previously existing values
 # for the slurm and munge users.
 # >>>>>>>>>>
-if ! confirm "creating slurm and munge users"; then return; fi
+if ! confirm "creating slurm and munge users"; then exit; fi
 echo "Checking for munge user"
 export MUNGEUSER=996
 result=$(id -u munge 2>/dev/null)
@@ -222,17 +236,19 @@ echo "slurm user is $SLURMUSER"
 # >>>>>>>>>>>>>>
 # install munge
 # >>>>>>>>>>>>>>
-if ! confirm "installing munge"; then return; fi
-installit munge munge-libs munge-devel
-installit rng-tools
+if ! confirm "installing munge"; then exit; fi
+$installit munge munge-libs munge-devel
+$installit rng-tools
 sudo rngd -r /dev/urandom
 
 # >>>>>>>>>>>>>>
 # do not overwrite the mungekey if this step has been previously done.
 # >>>>>>>>>>>>>>
+echo "Checking to see if there is already a munge.key"
 export mungekey="/etc/munge/munge.key"
 key_exists=$(sudo ls $mungekey 2>/dev/null)
 if [ -z $key_exists ]; then
+    echo "munge.key not found; making one."
     sudo /usr/sbin/create-munge-key -r -f
     sudo chown munge: /etc/munge/munge.key
     sudo chmod 400 /etc/munge/munge.key
@@ -243,27 +259,29 @@ fi
 # >>>>>>>>>>>>>>>
 key_hash=$(sudo sha1sum /etc/munge/munge.key)
 export key_hash=$(for x in $key_hash; do echo $x; break; done)
+echo "The hash of munge.key is $key_hash. Starting munge."
 sudo systemctl enable munge
 sudo systemctl start munge
 
 
 # build and install SLURM 
-if ! confirm "installing slurm"; then return; fi
-installit python3 gcc openssl openssl-devel pam-devel \
+if ! confirm "installing slurm"; then exit; fi
+$installit python3 gcc openssl openssl-devel pam-devel \
     numactl numactl-devel hwloc lua readline-devel \
     ncurses-devel man2html libibmad libibumad rpm-build \
     perl-ExtUtils-MakeMaker.noarch
 
-installit rrdtool-devel lua-devel hwloc-devel
+$installit rrdtool-devel lua-devel hwloc-devel
 
 mkdir -p slurm-tmp
 cd slurm-tmp
 wget https://download.schedmd.com/slurm/slurm-$VER.tar.bz2
 
-$rpmbuilder -ta slurm-$VER.tar.bz2    # and wait a few minutes until SLURM has been compiled
+$rpmbuilder -ta slurm-$VER.tar.bz2 2>&1 
+# and wait a few minutes until SLURM has been compiled
 
 cd ..
-rmdir -fr slurm-tmp 
+rm -fr slurm-tmp 
 
 mkdir -p ~/rpmbuild/RPMS/x86_64
 cd ~/rpmbuild/RPMS/x86_64/
@@ -272,7 +290,7 @@ cd ~/rpmbuild/RPMS/x86_64/
 # Now install the rpms we just built. Our packages are unsigned
 # because we just built them ourselves, so skip that bit of checking
 # >>>>>>>>>>>>>>
-installit --nogpgcheck localinstall \
+$installit --nogpgcheck localinstall \
     slurm-[0-9]*.x86_64.rpm \
     slurm-contribs-*.x86_64.rpm \
     slurm-devel-*.x86_64.rpm \
@@ -291,7 +309,7 @@ installit --nogpgcheck localinstall \
 slurm_cfg=$(slurmd -C | head -1)
 export slurm_cfg="$slurm_cfg NodeAddr=$HOST_IP"
 
-if ! confirm "create the slurm.conf file[s]"; then return; fi
+if ! confirm "create the slurm.conf file[s]"; then exit; fi
 # >>>>>>>>>>>
 # create the SLURM default configuration with
 # compute nodes called "NodeName=$HOST"
@@ -419,7 +437,7 @@ sudo firewall-cmd --reload
 
 
 # sync clock on master and every compute node 
-installit ntp
+$installit ntp
 sudo chkconfig ntpd on
 sudo ntpdate pool.ntp.org
 sudo systemctl start ntpd
