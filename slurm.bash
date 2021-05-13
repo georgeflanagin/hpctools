@@ -161,6 +161,14 @@ EOF
         if [ ! $? ]; then
             echo "Unable to install mariadb."
         fi 
+
+        if [ -z "$2" ]; then
+            sudo touch /var/log/slurmd.log
+            sudo chown slurm:slurm /var/log/slurmd.log
+        else
+            sudo touch /var/log/slurmctld.log
+            sudo chown slurm:slurm /var/log/slurmctld.log
+        fi
         ;;
 
         #######################

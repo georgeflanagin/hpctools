@@ -1,6 +1,8 @@
 # If this is not an interactive session, bail out.
 [ -z $PS1 ] && return
 
+
+export EDITOR=`which vim`
 export me=`whoami`
 # .bashrc
 
