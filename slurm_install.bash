@@ -52,7 +52,7 @@ sudo useradd  -m -c "SLURM workload manager" -d /var/lib/slurm -u $SLURMUSER -g 
 # exit
 
 # For CentOS 7: need to get the latest EPEL repository.
-sudo yum install epel-release -y
+sudo dnf -y install epel-release
 if [ "$OSVERSION" == "7" ] ; then
     sudo yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm -y 
 fi
