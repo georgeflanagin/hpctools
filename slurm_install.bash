@@ -427,7 +427,7 @@ sudo systemctl start ntpd
 if [ $node_type == "head" ]; then
     sudo systemctl enable slurmctld
     sudo systemctl enable slurmdbd
-if
+fi
 
 if [ $node_type == "compute" ]; then 
     sudo systemctl enable slurmd.service
@@ -445,15 +445,10 @@ if [ $node_type == "head" ]; then
 fi
 
 
-if [ $run_checks ]; then
-# sudo systemctl status slurmd.service
-# sudo journalctl -xe
+if (( $run_checks == 1 )); then
+    sudo systemctl status slurmd.service
+    sudo journalctl -xe
 
-# if you experience an error with starting up slurmd.service
-# like "fatal: Incorrect permissions on state save loc: /var/spool"
-# then you might want to adapt with chmod 777 /var/spool
-
-# more checking 
 # sudo slurmd -Dvvv -N YOUR_HOSTNAME 
 # sudo slurmctld -D vvvvvvvv
 # or tracing with sudo strace slurmctld -D vvvvvvvv
@@ -461,35 +456,35 @@ if [ $run_checks ]; then
 # echo Compute node bugs: tail /var/log/slurmd.log
 # echo Server node bugs: tail /var/log/slurmctld.log
 
-# show cluster 
-echo 
-echo Output from: \"sinfo\"
-sinfo
+    # show cluster 
+    echo 
+    echo Output from: \"sinfo\"
+    sinfo
 
-# sinfo -Nle
-echo 
-echo Output from: \"scontrol show partition\"
-scontrol show partition
+    sinfo -Nle
+    echo 
+    echo Output from: \"scontrol show partition\"
+    scontrol show partition
 
-# show host info as slurm sees it
-echo 
-echo Output from: \"slurmd -C\"
-slurmd -C
+    # show host info as slurm sees it
+    echo 
+    echo Output from: \"slurmd -C\"
+    slurmd -C
 
-# in case host is in drain status
-# scontrol update nodename=$HOST state=idle
+    # in case host is in drain status
+    # scontrol update nodename=$HOST state=idle
  
-echo 
-echo Output from: \"scontrol show nodes\"
-scontrol show nodes
+    echo 
+    echo Output from: \"scontrol show nodes\"
+    scontrol show nodes
 
-# If jobs are running on the node:
-# scontrol update nodename=$HOST state=resume
+    # If jobs are running on the node:
+    scontrol update nodename=$HOST state=resume
 
-# lets run our first job
-echo 
-echo Output from: \"srun hostname\"
-srun hostname
+    # lets run our first job
+    echo 
+    echo Output from: \"srun hostname\"
+    srun hostname
 
 # if there are issues in scheduling
 # turn on debugging
@@ -513,6 +508,6 @@ srun hostname
 # https://slurm.schedmd.com/quickstart.html
 # https://slurm.schedmd.com/quickstart_admin.html
 #
-
+fi
 
 
