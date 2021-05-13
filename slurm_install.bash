@@ -1,3 +1,12 @@
+###
+# THIS IS VERSION 2.0 of this script. It is based on the version mentioned
+# in ni-sp.com's Copyright statement below.
+###
+export __author__="George Flanagin"
+export __version_date__=2021
+export __version__=2.0 
+export __maintainer__="George Flanagin"
+export __email__="gflanagin@richmond.edu"
 ################################################################################
 # Copyright (C) 2019-2021 NI SP GmbH
 # All Rights Reserved
@@ -25,7 +34,7 @@
 # In case of version 8 "Server" was the base for the installation
 
 # SLURM accounting support
-yum install mariadb-server mariadb-devel -y
+sudo dnf -y install mariadb-server mariadb-devel
 
 # For all the nodes, before you install Slurm or Munge:
 
