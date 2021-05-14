@@ -483,8 +483,8 @@ sudo firewall-cmd --reload
 
 
 # sync clock on master and every compute node 
-$installit ntp
-$upgradeit ntp
+$installit ntp chkconfig ntpdate
+$upgradeit ntp chkconfig ntpdate
 sudo chkconfig ntpd on
 sudo ntpdate pool.ntp.org
 sudo systemctl start ntpd
