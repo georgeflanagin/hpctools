@@ -163,7 +163,7 @@ if [ -z $dnf ]; then
     dnf=$(which yum)
 fi
 v_echo "dnf is $dnf"
-$upgradeit dnf
+sudo dnf upgrade dnf
 
 # >>>>>>>>>>
 # Identify the correct rpm package tool.
