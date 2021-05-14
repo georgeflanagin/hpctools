@@ -142,10 +142,12 @@ EOF
 
         #######################
         "install")
+        cd
         f="/tmp/slurm.tombstone"
         rm -f "$f"
         touch "$f"
-        ./slurm_install.bash 2>&1 | tee "$f"
+        ./slurm_install.bash -v -i -c compute 2>&1 | tee "$f"
+i       echo "Check $f for errors."
 
 #        r=`which sbatch`
 #        if [ ! -z $r ]; then
