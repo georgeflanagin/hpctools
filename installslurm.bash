@@ -523,28 +523,6 @@ if (( $run_checks == 1 )); then
     echo Output from: \"srun hostname\"
     srun hostname
 
-# if there are issues in scheduling
-# turn on debugging
-#    sudo scontrol setdebug 6   # or up to 9 
-# check the journal 
-#    journalctl -xe
-# turn off debugging
-#    sudo scontrol setdebug 3
-
-# scontrol
-# scontrol: show node $HOST
-
-# scontrol show jobs
-# scontrol update NodeName=ip-172-31-23-216 State=RESUME
-# scancel JOB_ID
-# srun -N5 /bin/hostname
-# after changing the configuration:
-#   scontrol reconfigure
-#
-# more resources
-# https://slurm.schedmd.com/quickstart.html
-# https://slurm.schedmd.com/quickstart_admin.html
-#
 fi
 
 
