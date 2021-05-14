@@ -39,66 +39,28 @@ export __email__="gflanagin@richmond.edu"
 # In case of version 8 "Server" was the base for the installation
 # SLURM accounting support
 ##################################################################################
+# >>>>>>>>>>
+# NOTE: update the default version if required.
+# >>>>>>>>>>
+VER="${VER:-"20.11.7"}"
 
-function confirm
-{
-    if [ $interactive -eq 0 ]; then
-        true
-    fi
-        
-    read -r -p "Continue with $1 ? [y/N] " chars
-    case $chars in
-        [yY][eE][sS]|[yY])
-        true
-        ;;
-    *)
-        false
-        ;;
-    esac
-}
-
-function v_echo
-{
-    if (( $verbose == 1 )); then
-        echo "***********************************************"
-        echo $@
-        echo "***********************************************"
-    fi
-}
+echo "Loading installation utils."
+source ~/installutils.bash
 
 # >>>>>>>>>>
 # Make sure this is bash, and stop if we are not.
 # >>>>>>>>>>
-this_shell=$(basename $(readlink /proc/$$/exe))
-if [ ! "$this_shell" == "bash" ]; then
-    echo "This script should be run after you are in the bash shell."
-    echo "Try again after typing 'bash'."
+if no_bash; then
+    echo "You must run the installation from the *bash* shell, only."
     exit
 fi
 
 # >>>>>>>>>>
 # Make sure this user can sudo
 # >>>>>>>>>>
-g=$(groups)
-a_sudoer=0
-for g in $(groups); do
-    if [ $g == "wheel" ]; then
-        echo "Good thing you can sudo."
-        a_sudoer=1
-        break;
-    fi
-done
-
-if (( $a_sudoer == 0 )); then
-    echo "Only sudoers can run this script."
+if no_sudo; then
+    echo "You must be a sudoer to run this installation."
     exit
-fi
-
-# >>>>>>>>>>
-# NOTE: update the default version if required.
-# >>>>>>>>>>
-if [ "$VER" == "" ]; then
-    export VER="20.11.7"
 fi
 
 # >>>>>>>>>>
@@ -129,9 +91,18 @@ else
     export run_checks=0
 fi
 
+if [[ "$@" =~ "-s" ]]; then
+    export from_source=1
+    export from_packages=0
+else
+    export from_source=0
+    export from_packages=1
+fi
+
 echo "interactive is $interactive" 
 echo "run_checks is $run_checks" 
 echo "verbose is $verbose"
+echo "from_source is $from_source"
 
 for node_type in $@; do :
     done
@@ -162,6 +133,9 @@ Usage:
     -i => interactive. The script will ask you whether you
         want to continue after each step.
     -c => perform sanity checks at the end.
+    -s => from source; download the latest tarball, and recompile
+        everything. Otherwise, we get packages from the repos,
+        and start from that point.
     -v => verbose. Engage in haemorrhagic logorrhoea.
 
 EOF
