@@ -99,14 +99,16 @@ else
     export from_packages=1
 fi
 
-echo "interactive is $interactive" 
-echo "run_checks is $run_checks" 
-echo "verbose is $verbose"
-echo "from_source is $from_source"
-
 for node_type in $@; do :
     done
-echo "node_type is $node_type"
+
+if (( $verbose == 1 )); then 
+    echo "interactive is $interactive" 
+    echo "run_checks is $run_checks" 
+    echo "verbose is $verbose"
+    echo "from_source is $from_source"
+    echo "node_type is $node_type"
+fi
 
 # >>>>>>>>>>>>
 # Find out what we are doing.
@@ -125,10 +127,17 @@ case "$node_type" in
     ""|"help"|*)
     cat - <<EOF
 Usage:
-    $0 [-i] [-c] [-v] {head | compute}
+    $0 [-i] [-c] [-v] [-s] {head | compute}
 
     This script will do its best to install and upgrade the 
-    slurm/munge environment on this node of the cluster.
+    slurm/munge environment on this node of the cluster. At
+    the very least, you must specify whether this is to be 
+    compute node or the head node.
+
+    If you type > $0 compute
+
+    you will get a no-questions asked, installation from the
+    standard packages, skipping the checks at the end.
 
     -i => interactive. The script will ask you whether you
         want to continue after each step.
@@ -260,7 +269,7 @@ $installit python3 gcc openssl openssl-devel pam-devel \
 
 $installit rrdtool-devel lua-devel hwloc-devel
 
-if (( $from_source -eq 1 )); then
+if (( $from_source == 1 )); then
 
     mkdir -p slurm-tmp
     cd slurm-tmp

@@ -28,9 +28,9 @@ function no_bash
 {
     this_shell=$(basename $(readlink /proc/$$/exe))
     if [ ! "$this_shell" == "bash" ]; then
-        return 1
-    else
         return 0
+    else
+        return 1
     fi
 }
 
