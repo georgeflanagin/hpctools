@@ -196,6 +196,10 @@ else
 fi
 echo "munge user is $MUNGEUSER"
     
+
+# >>>>>>>>>>>>>>>>>>>
+# And now the slurm user.
+# >>>>>>>>>>>>>>>>>>>
 echo "Checking for slurm user"
 export SLURMUSER=967
 result=$(id -u slurm 2>/dev/null)
@@ -235,11 +239,20 @@ key_hash=$(sudo sha1sum /etc/munge/munge.key)
 export key_hash=$(for x in $key_hash; do echo $x; break; done)
 echo "The hash of munge.key is $key_hash. Starting munge."
 sudo systemctl enable munge
-sudo systemctl start munge
+if confirm "start the munge daemon"; then
+    sudo systemctl start munge
+else
+    echo "You will need to start the munge daemon later."
+fi
 
 
 # build and install SLURM 
 if ! confirm "installing slurm"; then exit; fi
+
+# >>>>>>>>>>>>>>>
+# We need to keep these packages up to scratch regardless
+# of our install method (source or package).
+# >>>>>>>>>>>>>>>
 $installit python3 gcc openssl openssl-devel pam-devel \
     numactl numactl-devel hwloc lua readline-devel \
     ncurses-devel man2html libibmad libibumad rpm-build \
@@ -247,34 +260,57 @@ $installit python3 gcc openssl openssl-devel pam-devel \
 
 $installit rrdtool-devel lua-devel hwloc-devel
 
-mkdir -p slurm-tmp
-cd slurm-tmp
-wget https://download.schedmd.com/slurm/slurm-$VER.tar.bz2
+if (( $from_source -eq 1 )); then
 
-$rpmbuilder -ta slurm-$VER.tar.bz2 2>&1 
-# and wait a few minutes until SLURM has been compiled
+    mkdir -p slurm-tmp
+    cd slurm-tmp
+    wget https://download.schedmd.com/slurm/slurm-$VER.tar.bz2
 
-cd ..
-rm -fr slurm-tmp 
+    $rpmbuilder -ta slurm-$VER.tar.bz2 2>&1 
+    # and wait a few minutes until SLURM has been compiled
 
-mkdir -p ~/rpmbuild/RPMS/x86_64
-cd ~/rpmbuild/RPMS/x86_64/
+    cd ..
+    rm -fr slurm-tmp 
 
-# >>>>>>>>>>>>>>
-# Now install the rpms we just built. Our packages are unsigned
-# because we just built them ourselves, so skip that bit of checking
-# >>>>>>>>>>>>>>
-$installit --nogpgcheck localinstall \
-    slurm-[0-9]*.x86_64.rpm \
-    slurm-contribs-*.x86_64.rpm \
-    slurm-devel-*.x86_64.rpm \
-    slurm-example-configs-*.x86_64.rpm \
-    slurm-libpmi-*.x86_64.rpm  \
-    slurm-pam_slurm-*.x86_64.rpm \
-    slurm-perlapi-*.x86_64.rpm \
-    slurm-slurmctld-*.x86_64.rpm \
-    slurm-slurmd-*.x86_64.rpm \
-    slurm-slurmdbd-*.x86_64.rpm
+    mkdir -p ~/rpmbuild/RPMS/x86_64
+    cd ~/rpmbuild/RPMS/x86_64/
+
+    # >>>>>>>>>>>>>>
+    # Now install the rpms we just built. Our packages are unsigned
+    # because we just built them ourselves, so skip that bit of checking
+    # >>>>>>>>>>>>>>
+    $installit --nogpgcheck localinstall \
+        slurm-[0-9]*.x86_64.rpm \
+        slurm-contribs-*.x86_64.rpm \
+        slurm-devel-*.x86_64.rpm \
+        slurm-example-configs-*.x86_64.rpm \
+        slurm-libpmi-*.x86_64.rpm  \
+        slurm-pam_slurm-*.x86_64.rpm \
+        slurm-perlapi-*.x86_64.rpm \
+        slurm-slurmctld-*.x86_64.rpm \
+        slurm-slurmd-*.x86_64.rpm \
+        slurm-slurmdbd-*.x86_64.rpm
+
+else
+    $installit slurm-libs \
+        slurm \
+        slurm-perlapi \
+        slurm-pmi \
+        slurm-gui \
+        slurm-rrdtool \
+        slurm-pmi-devel \
+        slurm-contribs \
+        slurm-openlava \
+        slurm-torque \
+        slurm-slurmdbd \
+        slurm-slurmd \
+        slurm-slurmctld \
+        slurm-pam_slurm \
+        slurm-nss_slurm \
+        slurm-doc \
+        slurm-devel
+fi
+
 
 # >>>>>>>>>>>>
 # By this time, we should have slurmd installed, so let's use
@@ -362,14 +398,13 @@ sudo cat > /etc/slurm/cgroup.conf << EOF
 # information on cgroup configuration parameters
 #--
 CgroupAutomount=yes
-
 ConstrainCores=no
 ConstrainRAMSpace=no
-
 EOF
 
 # >>>>>>>>>>>>>>>>
-# Set the ownerships and permissions as required.
+# Set the ownerships and permissions as required. If they
+# are already set, it will not hurt to set them again.
 # >>>>>>>>>>>>>>>>
 
 sudo mkdir -p /var/spool/slurm
@@ -430,7 +465,8 @@ echo Sleep for a few seconds for slurmd to come up ...
 sleep 3
 
 if [ $node_type == "head" ]; then
-    chmod 777 /var/spool   # hack for now as otherwise slurmctld is complaining
+    # hack for now as otherwise slurmctld is complaining
+    chmod 777 /var/spool   
     sudo systemctl start slurmctld.service
     echo Sleep for a few seconds for slurmctld to come up ...
     sleep 3
