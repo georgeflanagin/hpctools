@@ -64,3 +64,15 @@ use git every day. These are simplifications of the most common commands.
 - `tag` : give your changes a cool name
 - `workflowhelp` : explain a little bit about the order of operations.
 
+The biggest advantage of the `git.bash` file is its use of the very 
+informative prompt. It looks like this:
+
+`[master][pistol(george):///anagrammatic]: `
+
+- `master` : the name of the git branch you are on. If you are not in a dir managed by
+git, nothing will be there.
+- `pistol` : the hostname of the current server (minus all that domain stuff).
+- `george` : the name of the user.
+- `///` : how many directory levels down you are, in this case, 3.
+- `anagramatic` : the name of present working directory.
+
