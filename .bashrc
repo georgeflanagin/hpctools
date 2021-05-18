@@ -465,6 +465,111 @@ myscreen()
     echo "my screen is `tput cols` columns wide and `tput lines` lines tall."
 }
 
+function perms
+{
+  if [ -z $1 ]; then
+    echo 'Usage: perms {/sufficiently/qualified/directory/or/file/name}'
+    return
+  fi
+
+  problem="$1"
+  if [ "$problem" == "." ]; then
+    problem=`pwd`
+  fi
+  if [ -f "$problem" ]; then
+    problem=`readlink -f $problem`
+  elif [ -d "$problem" ]; then
+    echo ' '
+  else
+    echo "Cannot make sense of $problem"
+    return
+  fi
+
+  touch /tmp/x
+  rm -f /tmp/x
+
+  tabs 10
+
+  echo "Access permissions for $problem"
+  echo "===================================================="
+  echo " "
+
+  while true ; do
+    if [ -f "$problem" ]; then
+      ls -l "$problem" | awk '{print $1"\t"$3"\t"$4"\t"$9}' >> /tmp/x
+    else
+      ls -ld "$problem" | awk '{print $1"\t"$3"\t"$4"\t"$9}' >> /tmp/x
+    fi
+    [[ "$problem" != "/" ]] || break
+    problem="$( dirname "$problem" )"
+  done
+  sed '1!G;h;$!d' < /tmp/x
+  rm -f /tmp/x
+}
+
+function viremote
+{
+  if [ -z $1 ]; then
+    echo 'Usage: works just like vi, but lets you edit a file on a remote host but with your own .vimrc.'
+    return
+  fi
+
+  numinnerparams=$(($#-1))
+
+  for last; do true; done
+  pushd /tmp > /dev/null 2>&1
+  localcopy=${last##*/}
+  scp "$last" " $localcopy "
+  if [[ $numinnerparams -eq 0 ]]; then
+    vi "$localcopy"
+  else
+    newparams=${@:1:$numinnerparams}
+    vi "$newparams" "$localcopy"
+  fi
+  scp "$localcopy" "$last"
+  popd > /dev/null 2>&1
+}
+
+function reassign
+{
+  if [ "$1" == "$help" ]; then
+    workflowhelp ${FUNCNAME[0]}
+    return
+  fi
+
+  if [ -z $1 ]; then
+   read -p "Give the name of the link: " linkname
+  fi
+  if [ -z $2 ]; then
+   read -p "Give the name of the new target: " target
+  fi
+
+  # Make sure the thing we are removing is a sym link.
+  if [ ! -L $1 ]; then
+   echo "Sorry. $1 is not a symbolic link"
+
+  # attempt to create the file if it does not exist.
+  else
+   if [ ! -e $2 ]; then
+     touch $2
+     # mention the fact that we had to create it.
+     echo "Created empty file named $2"
+   fi
+
+   # make sure the target is present.
+   if [ ! -e $2 ]; then
+     echo "Unable to find or create $2."
+   else
+     # nuke the link
+     rm -f $1
+     # link
+     ln -s $2 $1
+     # confirm by showing.
+     ls -l $1
+   fi
+  fi
+}
+
 export PATH="$PATH:/opt/app/anaconda3/anaconda3/bin"
 export NLTK_DATA=/home/gflanagi/.local/nltk_data
 export HISTTIMEFORMAT="%d/%m/%y %T "
