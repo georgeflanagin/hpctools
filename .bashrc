@@ -47,7 +47,7 @@ if [ -d "$anaconda_dir" ]; then
     echo "adding Anaconda dir to path"
     export PATH="$PATH:$anaconda_dir"
 else
-    echo "No Anaconda 3 dir here. Using system python"
+    echo "No Anaconda 3 dir here. Using system python: $p"
     alias python="$p"
     alias python3="$p"
 fi
