@@ -22,7 +22,7 @@ that many others can be discovered by looking in the file, itself.
 - `delhere` : removes the present working directory from the PATH (if it is present at all).
 - `e` : edit the most recently changed file in this directory.
 - `findq` : find without all the errors cluttering the screen.
-- `fixperms` : removes superfluous execute access from files that are not executable.
+- `fixperms` : removes superfluous execute access from files that are not executable, and sets the gid bit so that new files are created associated with the group of the directory.
 - `hg` : combines history with grep.
 - `isrunning` : checks to see if a program is running
 - `myscreen` : prints a message about the size of the current terminal window
@@ -76,3 +76,6 @@ git, nothing will be there.
 - `///` : how many directory levels down you are, in this case, 3.
 - `anagramatic` : the name of present working directory.
 
+## slurm.bash
+
+## amber.bash

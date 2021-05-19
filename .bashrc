@@ -1,11 +1,6 @@
 # If this is not an interactive session, bail out.
 [ -z $PS1 ] && return
 
-
-export EDITOR=`which vim`
-export me=`whoami`
-# .bashrc
-
 # Source global definitions
 if [ -f /etc/bashrc ]; then
     echo "Loading global bash settings."
@@ -19,73 +14,131 @@ fi
 # source /act/etc/profile.d/actbin.sh
 # source /opt/etc/profile.d/pi_cparish.bashrc
 
+# >>>>>>>>>>>>>>>>>>>>>
+# names and aliases
+# >>>>>>>>>>>>>>>>>>>>>
 
-export CPUNAME=$(hostname | awk -F. '{print $1}')
-export PS1="["$CPUNAME":\w]: "
+export EDITOR=`which vim`
+export me=`whoami`
 
 shopt -s direxpand
 shopt -s cdable_vars
 shopt -s checkwinsize
 
-showsockets()
+export CPUNAME=$(hostname | awk -F. '{print $1}')
+export PS1="["$CPUNAME":\w]: "
+alias ll="ls -l "
+alias vi="vim "
+alias rm="rm -i "
+alias mv="mv -i "
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Special case to set "python" for the anaconda env.
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+p=`ls /usr/bin/python3* | tail -1`
+if [ -d "/opt/app/anaconda3/anaconda3/bin" ]; then
+    alias python="/opt/app/anaconda3/anaconda3/bin/python3.8"
+    alias python3="$p"
+    export PATH="$PATH:/opt/app/anaconda3/anaconda3/bin"
+else
+    alias python="$p"
+    alias python3="$p"
+fi
+
+# >>>>>>>>>>>>>>>>>
+# directory stuff
+# >>>>>>>>>>>>>>>>>
+
+function reassign
 {
-    ss -t | grep -v 127.0.0.1
+  if [ "$1" == "$help" ]; then
+    workflowhelp ${FUNCNAME[0]}
+    return
+  fi
+
+  if [ -z $1 ]; then
+   read -p "Give the name of the link: " linkname
+  fi
+  if [ -z $2 ]; then
+   read -p "Give the name of the new target: " target
+  fi
+
+  # Make sure the thing we are removing is a sym link.
+  if [ ! -L $1 ]; then
+   echo "Sorry. $1 is not a symbolic link"
+
+  # attempt to create the file if it does not exist.
+  else
+   if [ ! -e $2 ]; then
+     touch $2
+     # mention the fact that we had to create it.
+     echo "Created empty file named $2"
+   fi
+
+   # make sure the target is present.
+   if [ ! -e $2 ]; then
+     echo "Unable to find or create $2."
+   else
+     # nuke the link
+     rm -f $1
+     # link
+     ln -s $2 $1
+     # confirm by showing.
+     ls -l $1
+   fi
+  fi
 }
 
-showpipes()
+function mcd ()
 {
-    lsof | head -1
-    lsof | grep FIFO | grep -v grep | grep -v lsof
+    mkdir -p "$1"
+    cd "$1"
 }
 
-xmllines()
-{
-   sed -i 's/></>\n</g' "$1"   
-}
-
-hg()
+function cd
 {
     if [ -z $1 ]; then
-        echo 'Usage: hg {search-term}'
+        command pushd ~ >/dev/null
+    else
+        command pushd "$1" 2>&1 >/dev/null
+    fi
+}
+
+function cdd
+{
+    d_name=$(find . -type d -name "$1" 2>&1 | grep -v Permission | head -1)
+    if [ -z $d_name ]; then
+        d_name=$(find ~ -type d -name "$1" 2>&1 | grep -v Permission | head -1)
+    fi  
+    if [ -z $d_name ]; then
+        echo "no directory here named $1"
         return
     fi
-    history | grep "$1"
+    cd "$d_name"
 }
 
-gpgdiagnose()
+function cdshow
 {
-    if [ -z $1 ]; then
-        echo "Usage: gpgdiagnose filename"
-        return
-    fi
-    
-    gpg --list-packets -vvv --show-session-key "$1" > "$1.diag" 2>&1
+    dirs -v -l
 }
 
-hogs()
+function up
 {
-    find /sw/canoe -size +100M -exec ls -l {} \;
+    levels=${1:-1}
+    while [ $levels -gt 0 ]; do
+        cd ..
+        levels=$(( --levels ))
+    done
 }
 
-tunnel()
+function back
 {
-    if [ -z $4 ]; then
-        echo "Usage: tunnel localport target targetport tunnelhost"
-        return
-    fi
-
-    ssh -f -N -L "$1:$2:$3 $4"
-}
-
-findkey()
-{
-    gpg --list-keys | grep -a1 -b1 "$1"
-}
-
-function fixperms()
-{
-    chmod -R go-rwx *
-    chmod -R -x+X *
+    levels=${1:-1}
+    while [ $levels -gt 0 ]; do
+        popd 2>&1 > /dev/null
+        levels=$(( --levels ))
+    done
 }
 
 function clonedirsto()
@@ -104,18 +157,155 @@ function clonedirsto()
 }
 
 
+# >>>>>>>>>>>>>>>>>>>>>>>>>
+# sockets, pipes, tunnels
+# >>>>>>>>>>>>>>>>>>>>>>>>>
+
+showsockets()
+{
+    ss -t | grep -v 127.0.0.1
+}
+
+showpipes()
+{
+    lsof | head -1
+    lsof | grep FIFO | grep -v grep | grep -v lsof
+}
+
+tunnel()
+{
+    if [ -z $4 ]; then
+        echo "Usage: tunnel localport target targetport tunnelhost"
+        return
+    fi
+
+    ssh -f -N -L "$1:$2:$3 $4"
+}
+
+
+# >>>>>>>>>>>>>>>>>>
+# file stuff
+# >>>>>>>>>>>>>>>>>>
+
+function perms
+{
+  if [ -z $1 ]; then
+    echo 'Usage: perms {/sufficiently/qualified/directory/or/file/name}'
+    return
+  fi
+
+  problem="$1"
+  if [ "$problem" == "." ]; then
+    problem=`pwd`
+  fi
+  if [ -f "$problem" ]; then
+    problem=`readlink -f $problem`
+  elif [ -d "$problem" ]; then
+    echo ' '
+  else
+    echo "Cannot make sense of $problem"
+    return
+  fi
+
+  touch /tmp/x
+  rm -f /tmp/x
+
+  tabs 10
+
+  echo "Access permissions for $problem"
+  echo "===================================================="
+  echo " "
+
+  while true ; do
+    if [ -f "$problem" ]; then
+      ls -l "$problem" | awk '{print $1"\t"$3"\t"$4"\t"$9}' >> /tmp/x
+    else
+      ls -ld "$problem" | awk '{print $1"\t"$3"\t"$4"\t"$9}' >> /tmp/x
+    fi
+    [[ "$problem" != "/" ]] || break
+    problem="$( dirname "$problem" )"
+  done
+  sed '1!G;h;$!d' < /tmp/x
+  rm -f /tmp/x
+}
+
+xmlfix()
+{
+    sed -i 's/></>\n</g' "$1"   
+}
+
+function owner ()
+{
+    chown -R $1 *
+    chgrp -R $1 *
+}
+
+function fixperms()
+{
+    chmod g+s $(pwd)
+    chmod -R go-rwx *
+    chmod -R -x+X *
+}
+
+hogs()
+{
+    d=${1:-$(pwd)}
+    find $d -size +100M -exec ls -l {} \;
+}
+
 function cloc
 {
-    if [ -z $1 ]; then
-        pushd $CANOE_HOME/src > /dev/null 2>&1
-    else
-        pushd "$1" > /dev/null 2>&1
-    fi
-    echo counting $PWD
-    /sw/canoe/bin/cloc `git ls-tree --full-tree --name-only -r HEAD | grep py$`
+    d=${1:-$(pwd)}
+    pushd "$d" >/dev/null 2>&1
+    echo "counting $d"
+    /sw/canoe/bin/cloc `git ls-tree --full-tree --name-only -r HEAD`
     popd > /dev/null 2>&1
 }
 
+function findq
+{
+  find $@ 2>/dev/null | grep -v denied
+}
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>
+# general functions
+# >>>>>>>>>>>>>>>>>>>>>>>>>>
+
+# for fun
+alias rot13="tr '[A-Za-z]' '[N-ZA-Mn-za-m]'"
+
+function viremote
+{
+  if [ -z $1 ]; then
+    echo 'Usage: works just like vi, but lets you edit a file on a remote host but with your own .vimrc.'
+    return
+  fi
+
+  numinnerparams=$(($#-1))
+
+  for last; do true; done
+  pushd /tmp > /dev/null 2>&1
+  localcopy=${last##*/}
+  scp "$last" " $localcopy "
+  if [[ $numinnerparams -eq 0 ]]; then
+    vi "$localcopy"
+  else
+    newparams=${@:1:$numinnerparams}
+    vi "$newparams" "$localcopy"
+  fi
+  scp "$localcopy" "$last"
+  popd > /dev/null 2>&1
+}
+
+function e()
+{
+    vim `ls -1rt * | tail -1`    
+}
+
+myscreen()
+{
+    echo "my screen is `tput cols` columns wide and `tput lines` lines tall."
+}
 
 function confirm
 {
@@ -130,20 +320,60 @@ function confirm
     esac
 }
 
-function findq
+hg()
 {
-  find $@ 2>/dev/null | grep -v denied
+    if [ -z $1 ]; then
+        echo 'Usage: hg {search-term}'
+        return
+    fi
+    history | grep "$1"
+}
+
+function editrc
+{
+  vi ~/.bashrc
+  source ~/.bashrc
+}
+
+function reload
+{
+    source ~/.bashrc
+}
+
+function randomfile()
+{
+    if [ -z $1 ]; then
+        echo 'Usage: randomfile {filename} [size]'
+
+        echo ' .. generates a random file of printable chars of the given size (in bytes), '
+        echo '  or 1000 bytes if not supplied.'
+        return
+    fi
+  
+    len=${2:"1000"}
+    < /dev/urandom tr -dc "\t\n [:alnum:]" | head -c $len | base64 | head -c $len > "$1"
+}
+
+function myhosts()
+{
+    cat ~/.ssh/config | grep ^Host
+}
+
+function isrunning
+{
+    ps -ef | sed -n "1p; /$1/p;" | grep -v 'sed -n'
+}
+
+function findtext 
+{
+    grep -n -R "$1" * 2>/dev/null | grep -v "Binary file" 
 }
 
 ########################################
-export config=~/.ssh/config
 
-
-function title 
-{
-   PROMPT_COMMAND="echo -ne \"\033]0;$1 (on $HOSTNAME)\007\""
-}
-
+# >>>>>>>>>>>>>>>>>>
+# PATH stuff
+# >>>>>>>>>>>>>>>>>>
 function addhere
 {
   export PATH=$PATH:`pwd`
@@ -170,147 +400,30 @@ function pydelhere
     echo PYTHONPATH="$PYTHONPATH"
 }
 
-function cd
+
+# >>>>>>>>>>>>>>>>>>>
+# Keyring stuff
+# >>>>>>>>>>>>>>>>>>>
+export config=~/.ssh/config
+
+gpgdiagnose()
 {
-  if [ -z $1 ]; then
-    command pushd ~ >/dev/null
-  else
-    command pushd "$1" 2>&1 >/dev/null
-  fi
+    if [ -z $1 ]; then
+        echo "Usage: gpgdiagnose filename"
+        return
+    fi
+    
+    gpg --list-packets -vvv --show-session-key "$1" > "$1.diag" 2>&1
 }
 
-function cdd
+findkey()
 {
-  d_name=$(find . -type d -name "$1" 2>&1 | grep -v Permission | head -1)
-  if [ -z $d_name ]; then
-    d_name=$(find ~ -type d -name "$1" 2>&1 | grep -v Permission | head -1)
-  fi  
-  if [ -z $d_name ]; then
-    echo "no directory here named $1"
-    return
-  fi
-  cd "$d_name"
+    if [ -z $1 ]; then
+        echo "Usage: findkey {ownername}"
+        return
+    fi
+    gpg --list-keys | grep -a1 -b1 "$1"
 }
-
-
-function cdshow
-{
-  dirs -v -l
-}
-
-function up
-{
-  levels=${1:-1}
-  while [ $levels -gt 0 ]; do
-    cd ..
-    levels=$(( --levels ))
-  done
-}
-
-function back
-{
-  levels=${1:-1}
-  while [ $levels -gt 0 ]; do
-    popd 2>&1 > /dev/null
-    levels=$(( --levels ))
-  done
-}
-
-alias rot13="tr '[A-Za-z]' '[N-ZA-Mn-za-m]'"
-
-function py
-{
-    ls -lart *.py
-}
-
-function editrc
-{
-  vi ~/.bashrc
-  source ~/.bashrc
-}
-
-alias ll="ls -l "
-alias vi="vim "
-alias rm="rm -i "
-alias mv="mv -i "
-alias python="/opt/app/anaconda3/anaconda3/bin/python3.8"
-
-function e()
-{
-    vim `ls -1rt * | tail -1`    
-}
-
-function randomfile()
-{
-  if [ -z $1 ]; then
-    echo 'Usage: randomfile {filename} [size]'
-
-    echo ' .. generates a random file of printable chars of the given size (in bytes), '
-    echo '  or 1000 bytes if not supplied.'
-    return
-  fi
-  
-  len=1000
-  if [ $2 ]; then
-    len=$2
-  fi
-  < /dev/urandom tr -dc "\t\n [:alnum:]" | head -c $len | base64 | head -c $len > "$1"
-}
-
-function myhosts()
-{
-    cat ~/.ssh/config | grep ^Host
-}
-
-function mcd ()
-{
-  mkdir -p "$1"
-  cd "$1"
-}
-
-function owner ()
-{
-  chown -R $1 *
-  chgrp -R $1 *
-}
-
-function addtotar ()
-{
-  tar -rf $1 $2
-}
-
-function reload
-{
-  source ~/.bashrc
-}
-
-function isrunning
-{
-  ps -ef | sed -n "1p; /$1/p;" | grep -v 'sed -n'
-}
-
-function findtext {
-  grep -n -R "$1" * 2>&1 | grep -v svn | grep -v "Binary file" | grep -v \.bak
-}
-
-function pygrep {
-  grep -n -R '\<'"$1"'\>' * 2>&1 | grep "\.py:"  
-}
-
-function findlines 
-{
-    begin=$(($1-3))
-    end=$(($1+3))
-    for x in *.py; do
-        echo "In file $x"
-        sed -n "$begin,$end p" $x
-    done
-}
-
-me=`whoami`
-
-source ~/git.bash
-PROMPT_COLOR=$PURPLE
 
 function key
 {
@@ -449,130 +562,8 @@ EOD
 }
 
 export LS_COLORS=$LS_COLORS:'di=0;35:'
-showsockets()
-{
-    ss -t | grep -v 127.0.0.1
-}
-
-showpipes()
-{
-    lsof | head -1
-    lsof | grep FIFO | grep -v grep | grep -v lsof
-}
-
-myscreen()
-{
-    echo "my screen is `tput cols` columns wide and `tput lines` lines tall."
-}
-
-function perms
-{
-  if [ -z $1 ]; then
-    echo 'Usage: perms {/sufficiently/qualified/directory/or/file/name}'
-    return
-  fi
-
-  problem="$1"
-  if [ "$problem" == "." ]; then
-    problem=`pwd`
-  fi
-  if [ -f "$problem" ]; then
-    problem=`readlink -f $problem`
-  elif [ -d "$problem" ]; then
-    echo ' '
-  else
-    echo "Cannot make sense of $problem"
-    return
-  fi
-
-  touch /tmp/x
-  rm -f /tmp/x
-
-  tabs 10
-
-  echo "Access permissions for $problem"
-  echo "===================================================="
-  echo " "
-
-  while true ; do
-    if [ -f "$problem" ]; then
-      ls -l "$problem" | awk '{print $1"\t"$3"\t"$4"\t"$9}' >> /tmp/x
-    else
-      ls -ld "$problem" | awk '{print $1"\t"$3"\t"$4"\t"$9}' >> /tmp/x
-    fi
-    [[ "$problem" != "/" ]] || break
-    problem="$( dirname "$problem" )"
-  done
-  sed '1!G;h;$!d' < /tmp/x
-  rm -f /tmp/x
-}
-
-function viremote
-{
-  if [ -z $1 ]; then
-    echo 'Usage: works just like vi, but lets you edit a file on a remote host but with your own .vimrc.'
-    return
-  fi
-
-  numinnerparams=$(($#-1))
-
-  for last; do true; done
-  pushd /tmp > /dev/null 2>&1
-  localcopy=${last##*/}
-  scp "$last" " $localcopy "
-  if [[ $numinnerparams -eq 0 ]]; then
-    vi "$localcopy"
-  else
-    newparams=${@:1:$numinnerparams}
-    vi "$newparams" "$localcopy"
-  fi
-  scp "$localcopy" "$last"
-  popd > /dev/null 2>&1
-}
-
-function reassign
-{
-  if [ "$1" == "$help" ]; then
-    workflowhelp ${FUNCNAME[0]}
-    return
-  fi
-
-  if [ -z $1 ]; then
-   read -p "Give the name of the link: " linkname
-  fi
-  if [ -z $2 ]; then
-   read -p "Give the name of the new target: " target
-  fi
-
-  # Make sure the thing we are removing is a sym link.
-  if [ ! -L $1 ]; then
-   echo "Sorry. $1 is not a symbolic link"
-
-  # attempt to create the file if it does not exist.
-  else
-   if [ ! -e $2 ]; then
-     touch $2
-     # mention the fact that we had to create it.
-     echo "Created empty file named $2"
-   fi
-
-   # make sure the target is present.
-   if [ ! -e $2 ]; then
-     echo "Unable to find or create $2."
-   else
-     # nuke the link
-     rm -f $1
-     # link
-     ln -s $2 $1
-     # confirm by showing.
-     ls -l $1
-   fi
-  fi
-}
-
-export PATH="$PATH:/opt/app/anaconda3/anaconda3/bin"
-export NLTK_DATA=/home/gflanagi/.local/nltk_data
 export HISTTIMEFORMAT="%d/%m/%y %T "
+PROMPT_COLOR=$PURPLE
 
 # Find out if git is around.
 if [ ! -z `which git` ]; then
