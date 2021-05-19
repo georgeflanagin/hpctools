@@ -41,6 +41,31 @@ that many others can be discovered by looking in the file, itself.
 Let's admit that no one can remember all the git commands, even if you
 use git every day. These are simplifications of the most common commands.
 
+### the prompt
+
+The biggest advantage of the `git.bash` file is its use of the very 
+informative prompt. It looks like this:
+
+`[master][pistol(george):///anagrammatic]: `
+
+- `master` : the name of the git branch you are on. If you are not in a dir managed by
+git, nothing will be there.
+- `pistol` : the hostname of the current server (minus all that domain stuff).
+- `george` : the name of the user.
+- `///` : how many directory levels down you are, in this case, 3.
+- `anagramatic` : the name of present working directory.
+
+Additionally, you might see some decorators that appear after the branch name.
+They can all be present at once, so let's suppose the prompt looks like this:
+
+`[master+!?][pistol(george):///anagrammatic]: `
+
+- `+` : new files have been staged to be added to the repo on the next commit.
+- `!` : a file already in the repo has been changed, but not committed.
+- `?` : there is a file in the directory that is not a part of the project, and not specifically mentioned in the `.gitignore` file.
+
+### the git shortcuts
+
 - `add` : add a file to the repo.
 - `blame` : runs blame, with a nicely formatted report.
 - `checkout` : instead of `git checkout`.
@@ -63,18 +88,6 @@ use git every day. These are simplifications of the most common commands.
 - `status` : show the mess you have made of things.
 - `tag` : give your changes a cool name
 - `workflowhelp` : explain a little bit about the order of operations.
-
-The biggest advantage of the `git.bash` file is its use of the very 
-informative prompt. It looks like this:
-
-`[master][pistol(george):///anagrammatic]: `
-
-- `master` : the name of the git branch you are on. If you are not in a dir managed by
-git, nothing will be there.
-- `pistol` : the hostname of the current server (minus all that domain stuff).
-- `george` : the name of the user.
-- `///` : how many directory levels down you are, in this case, 3.
-- `anagramatic` : the name of present working directory.
 
 ## slurm.bash
 
