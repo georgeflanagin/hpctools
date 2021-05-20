@@ -16,7 +16,7 @@ echo "Loading installation utils."
 # This file contains exports with the package lists and some
 # utility functions to make this work easier.
 ################################################################################
-if [ ! -f "~/installutils.bash" ]; then
+if [ ! -f "$PWD/installutils.bash" ]; then
     echo "Cannot find ~/installutils.bash"
     exit
 fi
