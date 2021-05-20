@@ -158,12 +158,7 @@ esac
 # Identify the right installer. We are going to call it
 # dnf no matter what.
 # >>>>>>>>>>
-dnf=$(which dnf 2>/dev/null)
-if [ -z $dnf ]; then
-    dnf=$(which yum)
-fi
-v_echo "dnf is $dnf"
-sudo dnf upgrade dnf
+dnf=find_installer $interactive
 
 # >>>>>>>>>>
 # Identify the correct rpm package tool.
@@ -187,10 +182,11 @@ export upgradeit="sudo $dnf -y upgrade"
 # >>>>>>>>>>
 if ! confirm "Installing database"; then exit; fi
 v_echo "installing database"
-$installit mariadb-server mariadb-devel
-$upgradeit mariadb-server mariadb-devel
+$installit $database_packages
+$upgradeit $database_packages
 v_echo "database installed"
 
+# >>>>>>>>>>
 # For all the nodes, before you install Slurm or Munge:
 # >>>>>>>>>>
 # Setup some defaults, and check for previously existing values
@@ -227,10 +223,8 @@ echo "slurm user is $SLURMUSER"
 # install munge
 # >>>>>>>>>>>>>>
 if ! confirm "installing munge"; then exit; fi
-$installit munge munge-libs munge-devel
-$upgradeit munge munge-libs munge-devel
-$installit rng-tools
-$upgradeit rng-tools
+$installit $munge_packages
+$upgradeit $munge_packages
 sudo rngd -r /dev/urandom
 
 # >>>>>>>>>>>>>>
@@ -267,18 +261,8 @@ if ! confirm "installing slurm"; then exit; fi
 # We need to keep these packages up to scratch regardless
 # of our install method (source or package).
 # >>>>>>>>>>>>>>>
-$installit python3 gcc openssl openssl-devel pam-devel \
-    numactl numactl-devel hwloc lua readline-devel \
-    ncurses-devel man2html libibmad libibumad rpm-build \
-    perl-ExtUtils-MakeMaker.noarch
-
-$upgradeit python3 gcc openssl openssl-devel pam-devel \
-    numactl numactl-devel hwloc lua readline-devel \
-    ncurses-devel man2html libibmad libibumad rpm-build \
-    perl-ExtUtils-MakeMaker.noarch
-
-$installit rrdtool-devel lua-devel hwloc-devel
-$upgradeit rrdtool-devel lua-devel hwloc-devel
+$installit $devel_packages
+$upgradeit $devel_packages
 
 if (( $from_source == 1 )); then
 
@@ -312,40 +296,8 @@ if (( $from_source == 1 )); then
         slurm-slurmdbd-*.x86_64.rpm
 
 else
-    $installit slurm-libs \
-        slurm \
-        slurm-perlapi \
-        slurm-pmi \
-        slurm-gui \
-        slurm-rrdtool \
-        slurm-pmi-devel \
-        slurm-contribs \
-        slurm-openlava \
-        slurm-torque \
-        slurm-slurmdbd \
-        slurm-slurmd \
-        slurm-slurmctld \
-        slurm-pam_slurm \
-        slurm-nss_slurm \
-        slurm-doc \
-        slurm-devel
-    $upgradeit slurm-libs \
-        slurm \
-        slurm-perlapi \
-        slurm-pmi \
-        slurm-gui \
-        slurm-rrdtool \
-        slurm-pmi-devel \
-        slurm-contribs \
-        slurm-openlava \
-        slurm-torque \
-        slurm-slurmdbd \
-        slurm-slurmd \
-        slurm-slurmctld \
-        slurm-pam_slurm \
-        slurm-nss_slurm \
-        slurm-doc \
-        slurm-devel
+    $installit $slurm_packages
+    $upgradeit $slurm_packages
 fi
 
 
@@ -483,8 +435,8 @@ sudo firewall-cmd --reload
 
 
 # sync clock on master and every compute node 
-$installit ntp chkconfig ntpdate
-$upgradeit ntp chkconfig ntpdate
+$installit $clock_packages
+$upgradeit $clock_packages
 sudo chkconfig ntpd on
 sudo ntpdate pool.ntp.org
 sudo systemctl start ntpd
