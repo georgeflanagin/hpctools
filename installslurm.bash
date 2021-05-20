@@ -43,7 +43,6 @@ export __email__="gflanagin@richmond.edu"
 # NOTE: update the default version if required.
 # >>>>>>>>>>
 VER="${VER:-"20.11.7"}"
-
 echo "Loading installation utils."
 if [ ! -f "$PWD/installutils.bash" ]; then
     echo "Cannot find ~/installutils.bash"
@@ -164,6 +163,10 @@ esac
 # >>>>>>>>>>
 find_installer
 
+# begin the anonymous function so we have hidden I/O 
+# redirection. See last line of file.
+{
+echo "Install beginning: `date --iso-8601=minutes`"
 # >>>>>>>>>>
 # Identify the correct rpm package tool.
 # >>>>>>>>>>
@@ -207,7 +210,8 @@ else
     export MUNGEUSER=$result
 fi
 echo "munge user is $MUNGEUSER"
-    
+sudo chown munge:munge /var/log/munge
+sudo chmod 700 /var/log/munge
 
 # >>>>>>>>>>>>>>>>>>>
 # And now the slurm user.
@@ -460,7 +464,7 @@ sleep 3
 
 if [ $node_type == "head" ]; then
     # hack for now as otherwise slurmctld is complaining
-    chmod 777 /var/spool   
+    sudo chmod 777 /var/spool   
     sudo systemctl start slurmctld.service
     echo Sleep for a few seconds for slurmctld to come up ...
     sleep 3
@@ -509,5 +513,4 @@ if (( $run_checks == 1 )); then
     srun hostname
 
 fi
-
-
+} | tee > "$PWD/installslurm.`date --iso-8601=minutes`.out"

@@ -11,6 +11,7 @@ export __email__="gflanagin@richmond.edu"
 # Copyright (C) 2021 University of Richmond
 # All Rights Reserved
 ################################################################################
+
 export clock_packages="ntp chkconfig ntpdate"
 
 export database_packages="mariadb-server mariadb-devel"
