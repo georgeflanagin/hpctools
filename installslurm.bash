@@ -45,6 +45,10 @@ export __email__="gflanagin@richmond.edu"
 VER="${VER:-"20.11.7"}"
 
 echo "Loading installation utils."
+if [ ! -f "$PWD/installutils.bash" ]; then
+    echo "Cannot find ~/installutils.bash"
+    exit
+fi
 source ~/installutils.bash
 
 # >>>>>>>>>>
