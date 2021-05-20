@@ -162,7 +162,7 @@ esac
 # Identify the right installer. We are going to call it
 # dnf no matter what.
 # >>>>>>>>>>
-dnf=find_installer $interactive
+find_installer
 
 # >>>>>>>>>>
 # Identify the correct rpm package tool.

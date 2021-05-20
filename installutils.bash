@@ -59,20 +59,12 @@ function confirm
 
 function find_installer
 {
-    dnf=$(which dnf 2>/dev/null)
+    export dnf=$(which dnf 2>/dev/null)
     if [ -z $dnf ]; then
-        dnf=$(which yum)
+        export dnf=$(which yum)
     fi
     v_echo "dnf is $dnf"
-    sudo $dnf -y upgrade $dnf
-    r=$?
-    if [ ! $? ]; then 
-        echo "There was a problem upgrading dnf. exit code: $r"
-        if (( $1 == 1 )); then
-            exit
-        fi
-    fi
-    return $dnf
+    sudo "$dnf" -y upgrade dnf
 }
 
 function v_echo

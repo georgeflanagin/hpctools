@@ -572,15 +572,19 @@ export HISTTIMEFORMAT="%d/%m/%y %T "
 PROMPT_COLOR=$PURPLE
 
 # Find out if git is around.
-if [ ! -z `which git` ]; then
+if [ ! -z `which git 2>/dev/null` ]; then
     echo "git is installed on this system; loading shortcuts."
     source git.bash 2>&1 >/dev/null
+else
+    echo "Cannot find git in the PATH"
 fi
 
 # Find out if slurm is present.
-if [ ! -z `which sbatch` ]; then
+if [ ! -z `which sbatch 2>/dev/null` ]; then
     echo "slurm is installed on this system; loading shortcuts"
     source slurm.bash 2>&1 >/dev/null
     source slurm_completion.sh
+else
+    echo "Cannot find sbatch in the PATH"
 fi
 

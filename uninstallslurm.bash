@@ -79,7 +79,6 @@ if (( $verbose == 1 )); then
     echo "interactive is $interactive" 
     echo "run_checks is $run_checks" 
     echo "verbose is $verbose"
-    echo "from_source is $from_source"
     echo "node_type is $node_type"
     echo "remove_user is $remove_user"
 fi
@@ -129,9 +128,10 @@ esac
 # >>>>>>>>>>
 # Identify the right installer. We are going to call it
 # dnf no matter what. Let's also make sure we have the
-# correct version of dnf.
+# correct version of dnf. find_installer exports the environment
+# variable $dnf
 # >>>>>>>>>>
-dnf=findinstaller $interactive
+find_installer
 
 # >>>>>>>>>>>
 # Avoid typos by setting this env variable to ensure
@@ -158,11 +158,11 @@ fi
 # Remove slurm first.
 # >>>>>>>>>>>>>>
 $removeit $slurm_packages
-$r=$?
 if [ ! $? ]; then
-    echo "There was a problem removing at least one of the packages: $r"
+    echo "There was a problem removing at least one of the packages: $?"
     exit
 fi
+echo "Removing config files for slurm and munge."
 sudo rm -f /etc/slurm/*
 sudo rm -f /etc/munge/*
 
@@ -170,15 +170,14 @@ sudo rm -f /etc/munge/*
 # Remove munge
 # >>>>>>>>>>>>>>
 $removeit $munge_packages
-$r=$?
 if [ ! $? ]; then
-    echo "There was a problem removing at least one of the packages: $r"
+    echo "There was a problem removing at least one of the packages: $?"
     exit
 fi
 
 
 # >>>>>>>>>>
-if (( $remove_user = 1 )); then
+if (( $remove_user == 1 )); then
     if ! confirm "removing slurm and munge users"; then
         true 
     else
