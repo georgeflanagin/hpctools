@@ -37,11 +37,17 @@ alias mv="mv -i "
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 p=`ls /usr/bin/python3* | tail -1`
-if [ -d "/opt/app/anaconda3/anaconda3/bin" ]; then
-    alias python="/opt/app/anaconda3/anaconda3/bin/python3.8"
+anaconda_dir="/opt/app/anaconda3/anaconda3/bin"
+if [ -d "$anaconda_dir" ]; then
+    echo "Found Anaconda 3 directory"
+    p3=`ls -1 "$anaconda_dir"/python3.*[0-9] | tail -1`
+    echo "found Python at $p3"
+    alias python=$p3
     alias python3="$p"
-    export PATH="$PATH:/opt/app/anaconda3/anaconda3/bin"
+    echo "adding Anaconda dir to path"
+    export PATH="$PATH:$anaconda_dir"
 else
+    echo "No Anaconda 3 dir here. Using system python: $p"
     alias python="$p"
     alias python3="$p"
 fi
