@@ -1,5 +1,7 @@
-# hpctools
-Bash and bash tools for slurm, munge, and git
+# hpctools: Shell scripts to support High Performance Computing
+
+Bash tools for slurm, munge, and git. The tools cover the tedium of
+installation and removal of these software packages.
 
 Here is a summary of what is in each file:
 
@@ -89,6 +91,65 @@ They can all be present at once, so let's suppose the prompt looks like this:
 - `tag` : give your changes a cool name
 - `workflowhelp` : explain a little bit about the order of operations.
 
-## slurm.bash
+## SLURM (and munge)
+
+### installslurm.bash
+
+```
+Usage:
+    ./installslurm.bash [-i] [-c] [-v] [-s] {head | compute}
+
+    This script will do its best to install and upgrade the
+    slurm/munge environment on this node of the cluster. At
+    the very least, you must specify whether this is to be
+    compute node or the head node.
+
+    If you type > ./installslurm.bash compute
+
+    you will get a no-questions asked, installation from the
+    standard packages, skipping the checks at the end.
+
+    -i => interactive. The script will ask you whether you
+        want to continue after each step.
+    -c => perform sanity checks at the end.
+    -s => from source; download the latest tarball, and recompile
+        everything. Otherwise, we get packages from the repos,
+        and start from that point.
+    -v => verbose. Engage in haemorrhagic logorrhoea.
+```
+
+### installutils.bash
+
+These are functions to support the [un]install operations with SLURM and munge.
+
+### slurm.bash
+
+### uninstallslurm.bash
+
+```
+Usage:
+    ./uninstallslurm.bash [-c] [-i] [-s] [-u] [-v] {head | compute}
+
+    This script will do its best to uninstall slurm, munge, and
+    the maria database, generally because it failed to install
+    correctly.
+
+    If you type > ./uninstallslurm.bash compute
+
+    you will get a no-questions asked, removal of the
+    standard packages, skipping the checks at the end.
+
+    -c => check to see that things are really gone at the end.
+    -i => interactive. The script will ask you whether you
+        want to continue after each step.
+    -s => will remove the source code, too.
+    -u => will remove the slurm/munge users, too.
+    -v => verbose. Engage in haemorrhagic logorrhoea.
+```
+
+
+## AMBER 
+
+This is a work in progress.
 
 ## amber.bash
