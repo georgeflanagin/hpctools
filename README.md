@@ -99,7 +99,7 @@ They can all be present at once, so let's suppose the prompt looks like this:
 
 ```
 Usage:
-    ./installslurm.bash [-i] [-c] [-v] [-s] {head | compute}
+    installslurm [-i] [-c] [-v] [-s] {head | compute}
 
     This script will do its best to install and upgrade the
     slurm/munge environment on this node of the cluster. At
@@ -185,7 +185,7 @@ Usage:
 
 ```
 Usage:
-    ./uninstallslurm.bash [-c] [-i] [-s] [-u] [-v] {head | compute}
+    uninstallslurm [-c] [-i] [-s] [-u] [-v] {head | compute}
 
     This script will do its best to uninstall slurm, munge, and
     the maria database, generally because it failed to install
