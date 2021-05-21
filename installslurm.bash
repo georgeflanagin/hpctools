@@ -165,7 +165,6 @@ find_installer
 
 # begin the anonymous function so we have hidden I/O 
 # redirection. See last line of file.
-{
 echo "Install beginning: `date --iso-8601=minutes`"
 # >>>>>>>>>>
 # Identify the correct rpm package tool.
@@ -513,4 +512,3 @@ if (( $run_checks == 1 )); then
     srun hostname
 
 fi
-} | tee > "$PWD/installslurm.`date --iso-8601=minutes`.out"

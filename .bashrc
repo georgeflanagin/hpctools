@@ -579,6 +579,21 @@ else
     echo "Cannot find git in the PATH"
 fi
 
+function installslurm
+{
+    cd
+    ./installslurm.bash | tee > installslurm.`date --iso-8601=minutes`.out
+    back
+}
+
+function uninstallslurm
+{
+    cd 
+    ./uninstallslurm.bash | tee > uninstallslurm.`date --iso-8601=minutes`.out
+    back
+}
+
+
 # Find out if slurm is present.
 if [ ! -z `which sbatch 2>/dev/null` ]; then
     echo "slurm is installed on this system; loading shortcuts"
