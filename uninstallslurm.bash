@@ -164,7 +164,6 @@ if [ ! $? ]; then
 fi
 echo "Removing config files for slurm and munge."
 sudo rm -f /etc/slurm/*
-sudo rm -f /etc/munge/*
 
 # >>>>>>>>>>>>>>
 # Remove munge
@@ -174,6 +173,8 @@ if [ ! $? ]; then
     echo "There was a problem removing at least one of the packages: $?"
     exit
 fi
+sudo chmod 600 /etc/munge/munge.key
+sudo rm -f /etc/munge/*
 
 
 # >>>>>>>>>>
