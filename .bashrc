@@ -582,14 +582,14 @@ fi
 function installslurm
 {
     cd
-    ./installslurm.bash | tee > installslurm.`date --iso-8601=minutes`.out
+    ./installslurm.bash $@ | tee > installslurm.`date --iso-8601=minutes`.out
     back
 }
 
 function uninstallslurm
 {
     cd 
-    ./uninstallslurm.bash | tee > uninstallslurm.`date --iso-8601=minutes`.out
+    ./uninstallslurm.bash $@ | tee > uninstallslurm.`date --iso-8601=minutes`.out
     back
 }
 
