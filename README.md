@@ -26,6 +26,7 @@ that many others can be discovered by looking in the file, itself.
 - `findq` : find without all the errors cluttering the screen.
 - `fixperms` : removes superfluous execute access from files that are not executable, and sets the gid bit so that new files are created associated with the group of the directory.
 - `hg` : combines history with grep.
+- `installslurm` : installs SLURM! (and munge, too)
 - `isrunning` : checks to see if a program is running
 - `myscreen` : prints a message about the size of the current terminal window
 - `perms` : shows the nested permissions all the way up to `/`.
@@ -35,6 +36,7 @@ that many others can be discovered by looking in the file, itself.
 - `reload` : reloads the environment
 - `showpipes` : shows open pipes
 - `showsockets` : shows open sockets
+- `uninstallslurm` : removes SLURM and munge.
 - `up` : cd up a directory (or more)
 - `viremote` : use vim to edit a file on another file system.
 
@@ -122,7 +124,62 @@ Usage:
 
 These are functions to support the [un]install operations with SLURM and munge.
 
+- `confirm` -- confirms the next step for interactive, step-by-step installs
+- `find_installer` -- locates the correct program to do the install, and names it `$dnf`.
+- `v_echo` -- wrapper around echoes that are done only when verbose mode is engaged.
+- `no_bash` -- returns true if this is not a bash shell.
+- `no_sudo` -- returns true if this user does not have sudo.
+
+The file also creates lists of packages that are required to support slurm and munge.
+
 ### slurm.bash
+
+A file with a few, possibly "handy" shortcuts for the most common slurm 
+operations. 
+
+`nodes` : The nodes command allows you to get information about the
+nodes in the cluster. The syntax is:
+
+    `nodes {what-you-want-to-know-about}`
+
+The options are:
+
+```
+    free    -- show the idle nodes available for assignment.
+    avail   -- same as free
+    info    -- a more nicely formatted output from <sinfo>
+    queues  -- a more nicely formatted output from <squeue>
+```
+
+`submit` : The submit command allows you to submit slurm jobs in
+batch mode (the usual way of doing things). You can provide
+the name of your job with or without the ".slurm" on the end
+of the file name. You can also submit multiple jobs at the
+same time. Here are some examples:
+
+```
+    submit myjob.slurm -- tells slurm to run myjob.slurm
+    submit myjob  -- tells slurm to run myjob.slurm
+    submit myjob* -- tells slurm to run any slurm jobs whose
+        names start with "myjob"
+```
+
+Assuming something has been submitted, you will see your running
+jobs summarized at the end of the command.
+
+`slurm` : 
+
+```
+Usage:
+    slurm {check|install|start|stop|restart|config}
+
+        check     -- checks that the parts are all present.
+        install   -- performs a basic install.
+        start     -- starts the slurmd.
+        stop      -- stops the slurmd.
+        restart   -- stops, and then starts.
+        config    -- shows the config info for this node.
+```
 
 ### uninstallslurm.bash
 
