@@ -427,18 +427,19 @@ fi
 # On the head node, we need to accept the incoming connections.
 # >>>>>>>>>>>>
 if [ $node_type == "head" ]; then
+    sudo systemctl start firewalld
     sudo firewall-cmd --permanent --zone=public --add-port=6817/udp
     sudo firewall-cmd --permanent --zone=public --add-port=6817/tcp
     sudo firewall-cmd --permanent --zone=public --add-port=6818/tcp
     sudo firewall-cmd --permanent --zone=public --add-port=6818/tcp
     sudo firewall-cmd --permanent --zone=public --add-port=7321/tcp
     sudo firewall-cmd --permanent --zone=public --add-port=7321/tcp
+    # >>>>>>>>>>>>
+    # make the changes active.
+    # >>>>>>>>>>>>
+    sudo firewall-cmd --reload
 fi
 
-# >>>>>>>>>>>>
-# make the changes active.
-# >>>>>>>>>>>>
-sudo firewall-cmd --reload
 
 
 # sync clock on master and every compute node 
