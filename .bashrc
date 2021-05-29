@@ -32,14 +32,32 @@ alias vi="vim "
 alias rm="rm -i "
 alias mv="mv -i "
 
+getit()
+{
+    if [ -z $1 ]; then
+        echo "Usage: getit host /path/to/files/filespec"
+        echo "  creates a directory named /path/to/files on this machine"
+        echo "  and then copies the files on <host> in that directory"
+        echo "  to this machine."
+        return
+    fi
+
+    d=$(dirname "$2")
+    f=$(basename "$2")
+    mkdir -p "$d"
+    cd "$d"
+    scp -r $1:$d/$f .
+    
+}
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # Special case to set "python" for the anaconda env.
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 p=`ls /usr/bin/python3* | tail -1`
-anaconda_dir="/opt/app/anaconda3/anaconda3/bin"
+anaconda_dir=$(find /usr -path "*anaconda/bin" -type d 2>/dev/null)
 if [ -d "$anaconda_dir" ]; then
-    echo "Found Anaconda 3 directory"
+    echo "Found Anaconda directory"
     p3=`ls -1 "$anaconda_dir"/python3.*[0-9] | tail -1`
     echo "found Python at $p3"
     alias python=$p3
